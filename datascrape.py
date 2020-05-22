@@ -42,12 +42,14 @@ class scraper(object):
 
     # Get all tradable items
     def updateItems(self):
+        # Use osrsbox API to get item names and ids
         url = ("https://www.osrsbox.com/osrsbox-db/items-complete.json")
         response = requests.get(url)
         data = response.json()
         query = ("Select id from public.items")
         ids = self.db.query(query)
         
+        # Check if item is in database and tradable. If not, insert into database
         for item in data.keys():
             if(data[item]["tradeable_on_ge"] and not (any(data[item]["id"] in i for i in ids))):
                 query = "INSERT INTO public.items (id, name) VALUES (%s,%s)"
@@ -56,25 +58,31 @@ class scraper(object):
 
     # Update price/item data
     def update(self):
+        # Check if I need to update prices
         if(self.needUpdate()):
+            # Check if I need to update items
             if(datetime.datetime.today().weekday() == 0):
                 print("Updating Items!")
                 start_time = time.time()
                 self.updateItems()
                 print("Updating items took: ", (time.time() - start_time), " seconds")
 
+            # Limit query to 5 items
             print("Updating Data!")
             start_time = time.time()
             query = ("Select * from public.items ORDER BY id ASC LIMIT 5")
             items = self.db.query(query)
             print(items)
 
+            # OSRS price API
             root_url = "http://services.runescape.com/m=itemdb_oldschool/api/graph/"
             json_ext = ".json"
         
             for item, attribute in enumerate(items):
                 itemID = items[item][0]
                 url = root_url + str(itemID) + json_ext
+
+                # Attempt connection 6 time with increasing delay
                 for attempt in range(6):
                     try:        
                         prices = requests.get(url).json()
@@ -85,6 +93,7 @@ class scraper(object):
                         break
                 else:
                     raise ConnectionRefusedError("GE API refused to connect")
+                # Insert Price data into database
                 for day in range(self.lastDay + MILLISECONDS_DAY, self.today, MILLISECONDS_DAY):
                     query = "INSERT INTO public.prices (item_id, day, price) VALUES (%s, %s, %s)"
                     params = (itemID, day, prices['daily'][str(day)])

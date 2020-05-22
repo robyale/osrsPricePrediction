@@ -17,7 +17,7 @@ __version__ = "1.0.0"
 __status__ = "Prototype"
 
 
-db = database_connect.MyDB();
+db = database_connect.MyDB()
 
 # Print PostgreSQL Connection properties
 print (db.connection.get_dsn_parameters(),"\n")

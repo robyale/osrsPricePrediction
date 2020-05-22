@@ -16,7 +16,7 @@ __author__ = "Rob Yale"
 __version__ = "1.0.0"
 __status__ = "Prototype"
 
-
+# Connect to database using database_connect.py module
 db = database_connect.MyDB()
 
 # Print PostgreSQL Connection properties

@@ -26,10 +26,6 @@ class model(object):
 
     # Create and shapes training data
     def shapeData(self):
-        # Scale the data
-        scaler = MinMaxScaler(feature_range=(0,1))
-        scaled_data = scaler.fit_transform(self.data)
-
         # Set up scaled training data
         train_data = self.scaled_data[0:self.training_data_len, :]
 

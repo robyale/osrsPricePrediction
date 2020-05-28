@@ -88,15 +88,16 @@ class model(object):
         predictions = model.predict(x_test)
         predictions = self.scaler.inverse_transform(predictions)
         rmse = np.sqrt(np.mean(predictions - y_test)**2)
-
+        
+        print(rmse)
         return predictions, rmse
 
     # Plots the actual and predicted data
     def plotData(self, predictions=None):
         # Get training data
         train = self.data[:self.training_data_len]
-        if(predictions == None):
-            predictions, rmse = self.predictModel()
+        #if(len(predictions[0][0]) == 0):
+        #    predictions, rmse = self.predictModel()
 
         # Get actual values
         valid = {}
@@ -119,6 +120,9 @@ class model(object):
         plt.plot(*zip(*sorted(valid.items())))
         plt.plot(*zip(*sorted(predictions.items())))
         plt.legend(['Train', 'Val', 'Predictions'], loc='lower right')
+        #axes = plt.gca()
+        #axes.set_xlim((1750, 1840))
+        print("bla")
         plt.show()
 
 

@@ -40,3 +40,41 @@ class MyDB(object):
         self.cursor.close()
         self.connection.close()
         print("closed")
+        
+    # Insert a price into the table prices
+    def insertPrice(self, params):
+        query = "INSERT INTO public.prices (item_id, day, price) VALUES (%s, %s, %s)"
+        self.insert(query, params)
+        
+    # Insert a volum into the table volume
+    def insertVolume(self, params):
+        query = "INSERT INTO public.volume (item_id, day, volume) VALUES (%s, %s, %s)"
+        self.insert(query, params)
+        
+    # Get item data
+    # TODO data is limited to 5 items for speed
+    def getItems(self, id = None):
+        if(id != None):
+            query = ("Select * from public.items where id = " + str(id))
+        else:
+            query = ("Select * from public.items")# LIMIT 5")
+        return self.query(query)
+        
+    # Returns item price data
+    def getPrices(self, id = None):
+        if(id != None):
+            query = ("Select * from public.prices where item_id = " + str(id))
+        else:
+            query = ("Select * from public.prices")
+        return self.query(query)
+        
+    # Returns item volume data
+    def getVolume(self, id = None):
+        if(id != None):
+            query = ("Select * from public.volume where item_id = " + str(id))
+        else:
+            query = ("Select * from public.volume")
+        return self.query(query)
+        
+        
+        

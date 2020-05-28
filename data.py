@@ -8,6 +8,8 @@
 import datetime
 import requests
 import time
+import requests
+from bs4 import BeautifulSoup
 
 __author__ = "Rob Yale"
 __version__ = "1.0.0"
@@ -57,10 +59,10 @@ class fetch(object):
                 self.db.insert(query, params)
                
     # Update price data for all tradable items
-    def updateData(self):
-        # Get all item ids (currently limited to 5 items for speed)
-        query = ("Select * from public.items ORDER BY id ASC LIMIT 5")
-        items = self.db.query(query)
+    # Depreciated, keeping for future reference
+    # Initializing database would take multiple days
+    def api(self):
+        items = self.db.getItems()
 
         # OSRS API url
         root_url = "http://services.runescape.com/m=itemdb_oldschool/api/graph/"
@@ -88,6 +90,57 @@ class fetch(object):
                 query = "INSERT INTO public.prices (item_id, day, price) VALUES (%s, %s, %s)"
                 params = (itemID, day, prices['daily'][str(day)])
                 self.db.insert(query, params)
+                
+    def updateData(self):
+        # Get the items to be updated
+        items = self.db.getItems()
+        names = [x[1] for x in items]#[item for t in items for item in t]
+        names_formatted = [name.replace(" ", "_") for name in names]
+        
+        # URL to scrape from, initialize errors list
+        base = "https://oldschool.runescape.wiki/w/Module:Exchange/"
+        extension = "/Data"
+        
+        webErrors = []
+        dataErrors = []
+                        
+        # Insert prices and volume for each name
+        for i, name in enumerate(names):
+            url = base + names_formatted[i] + extension
+            print(name)
+            
+            # Try to connect
+            try:
+                response = requests.get(url)
+                html = BeautifulSoup(response.content, 'html.parser')
+                
+                # Check if page returns data
+                myID="Nothing_interesting_happens."
+                if(html.find(id=myID) != None):
+                    raise ConnectionError()
+            except:
+                webErrors.append(name)
+                
+            # If connected, add data to database
+            else:
+            # Scrape webpage for data, and add data
+            # Data is in format 'day (milliseconds):price:volume'
+                prices = [x.getText() for x in html.find_all("span", {"class", "s1"})]
+                for price in prices:
+                    temp = price.replace("'", "").split(":")
+                    if(int(temp[0]) > self.lastDay):
+                        # Try to insert data into database
+                        try:
+                            params = (items[i][0], int(temp[0]), int(temp[1]))
+                            self.db.insertPrice(params)
+                            # If there is volume information available, insert
+                            if(len(temp) == 3):
+                                params = (items[i][0], int(temp[0]), int(temp[2]))
+                                self.db.insertVolume(params)
+                        except:
+                            dataErrors.append(name)
+        print("Website errors:", webErrors)
+        print("Data Errors:", dataErrors)
 
     # Check if the data needs updating
     def checkUpdate(self):
@@ -113,11 +166,15 @@ class fetch(object):
             print("Updating data took: ", (time.time() - start_time), " seconds")
     
     # Initialize database if there is no data
+    # Warning: take a long time
     def initDatabase(self):
         print("Initializing database")
         start_time = time.time()
-        self.lastDay = self.today - (179 * MILLISECONDS_DAY)
+        # First day of GE data, - 1 to get data for first day too
+        self.lastDay = 1427414400 - MILLISECONDS_DAY
+        print("Inserting item data")
         self.updateItems()
+        print("Inserting price and volume data")
         self.updateData()
         print("Initializing database took:", (time.time() - start_time), " seconds")
             
@@ -130,20 +187,6 @@ class fetch(object):
             self.initDatabase()
         else:
             self.lastDay = self.getLastDay()
-            self.update()
+            #self.update()
 
-    # Returns item price data
-    def getPrices(self, id = None):
-        if(id != None):
-            query = ("Select * from public.prices where item_id = " + str(id))
-        else:
-            query = ("Select * from public.prices")
-        return self.db.query(query)
     
-    # Returns item name and id
-    def getItems(self, id = None):
-        if(id != None):
-            query = ("Select * from public.items where id = " + str(id))
-        else:
-            query = ("Select * from public.items")
-        return self.db.query(query)
